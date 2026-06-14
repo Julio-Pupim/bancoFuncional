@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <changeSet id="20260531-1" author="Julio.Pupim">
+
+        <createTable tableName="event_store">
+            <column name="event_id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+
+            <column name="aggregate_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="aggregate_type" type="VARCHAR(150)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="aggregate_version" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="schema_version" type="INT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="occurred_at" type="TIMESTAMP" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payload" type="jsonb">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="event_store"
+                             columnNames="aggregate_id, aggregate_version"
+                             constraintName="uq_events_aggregate_id_version"/>
+    </changeSet>
+
+</databaseChangeLog>
