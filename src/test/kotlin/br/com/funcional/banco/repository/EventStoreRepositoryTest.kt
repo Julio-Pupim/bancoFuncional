@@ -6,6 +6,7 @@ import br.com.funcional.banco.domain.eventos.ContaAberta
 import br.com.funcional.banco.domain.eventos.ContaBloqueada
 import br.com.funcional.banco.domain.eventos.DinheiroDepositado
 import br.com.funcional.banco.domain.eventos.DinheiroSacado
+import br.com.funcional.banco.domain.ports.MetadadosEvento
 import br.com.funcional.banco.infra.models.EventoPersistido
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -36,7 +37,8 @@ class EventStoreRepositoryTest : IntegrationTestBase() {
         repository.append(
             aggregateId,
             listOf(evento),
-            0
+            0,
+            MetadadosEvento(UUID.randomUUID(), aggregateId)
         )
 
         val quantidade = jdbcTemplate.jdbcTemplate.queryForObject(
@@ -62,7 +64,8 @@ class EventStoreRepositoryTest : IntegrationTestBase() {
             repository.append(
                 aggregateId,
                 listOf(evento),
-                5
+                5,
+                MetadadosEvento(UUID.randomUUID(), aggregateId)
             )
         }
     }
@@ -76,7 +79,8 @@ class EventStoreRepositoryTest : IntegrationTestBase() {
         repository.append(
             aggregateId,
             listOf(evento, evento2, evento3),
-            0
+            0,
+            MetadadosEvento(UUID.randomUUID(), aggregateId)
         )
         val versoes = repository.load(aggregateId)
 
@@ -100,7 +104,12 @@ class EventStoreRepositoryTest : IntegrationTestBase() {
         try {
             // 2. Executamos o append. O banco vai rejeitar o evento3 e falhar a transação.
             assertThrows<Exception>("Deve lançar exceção do banco de dados") {
-                repository.append(aggregateId, listOf(evento1, evento2, evento3), 0)
+                repository.append(
+                    aggregateId,
+                    listOf(evento1, evento2, evento3),
+                    0,
+                    MetadadosEvento(UUID.randomUUID(), aggregateId)
+                )
             }
 
             // 3. Validamos a atomicidade: como o lote falhou, o evento1 e evento2 NÃO devem ter sido salvos.
@@ -138,12 +147,14 @@ class EventStoreRepositoryTest : IntegrationTestBase() {
                 DinheiroDepositado(BigDecimal("50.00"), aggregateId),
                 DinheiroSacado(BigDecimal("20.00"), aggregateId)
             ),
-            0
+            0,
+            MetadadosEvento(UUID.randomUUID(), aggregateId)
         )
         repository.append(
             outroAggregateId,
             listOf(ContaAberta(outroAggregateId, BigDecimal("200.00"))),
-            0
+            0,
+            MetadadosEvento(UUID.randomUUID(), outroAggregateId)
         )
 
         val eventosPersistidos = repository.load(aggregateId)

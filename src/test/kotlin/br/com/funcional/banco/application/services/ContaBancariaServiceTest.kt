@@ -20,7 +20,7 @@ class ContaBancariaServiceTest {
     @Test
     fun `deve abrir conta`() {
         val id = UUID.randomUUID()
-        val comando = AbrirConta(id, BigDecimal.ZERO)
+        val comando = AbrirConta(idConta = id, saldoInicial = BigDecimal.ZERO)
         val novoComando = contaBancariaService.novoComando(comando)
         val eventos = (novoComando as CommandAceito).eventos
         assertIs<CommandAceito>(novoComando)
@@ -35,10 +35,10 @@ class ContaBancariaServiceTest {
     fun `deve abrir conta, depositar, sacar e encerrar conta`() {
 
         val idConta = UUID.randomUUID()
-        val comandoAbrirConta = AbrirConta(idConta, BigDecimal.ZERO)
-        val comandoDepositar = Depositar(BigDecimal.TEN, idConta)
-        val comandoSacar = Sacar(BigDecimal.TEN, idConta)
-        val comandoEncerrar = EncerrarConta(idConta)
+        val comandoAbrirConta = AbrirConta(idConta = idConta, saldoInicial = BigDecimal.ZERO)
+        val comandoDepositar = Depositar(valor = BigDecimal.TEN, idConta = idConta)
+        val comandoSacar = Sacar(valor = BigDecimal.TEN, idConta = idConta)
+        val comandoEncerrar = EncerrarConta(idConta = idConta)
         val comandoAbrirContaProcessado = contaBancariaService.novoComando(comandoAbrirConta)
         val comandoDepositarProcessado = contaBancariaService.novoComando(comandoDepositar)
         val comandoSacarProcessado = contaBancariaService.novoComando(comandoSacar)

@@ -3,6 +3,7 @@ package br.com.funcional.banco.infra.mock
 import br.com.funcional.banco.domain.ConflitoVersaoException
 import br.com.funcional.banco.domain.eventos.ContaEvento
 import br.com.funcional.banco.domain.ports.EventStore
+import br.com.funcional.banco.domain.ports.MetadadosEvento
 import br.com.funcional.banco.infra.models.EventoPersistido
 import tools.jackson.databind.ObjectMapper
 import java.time.LocalDateTime
@@ -16,7 +17,7 @@ class InMemoryEventStore(
     // Simula nossa tabela do banco de dados
     private val store = ConcurrentHashMap<UUID, MutableList<EventoPersistido>>()
 
-    override fun append(id: UUID, eventos: List<ContaEvento>, versaoAtual: Long) {
+    override fun append(id: UUID, eventos: List<ContaEvento>, versaoAtual: Long, metadadosEvento: MetadadosEvento) {
         val stream = store.computeIfAbsent(id) { mutableListOf() }
 
         // Simula o Optimistic Locking do banco
@@ -36,7 +37,9 @@ class InMemoryEventStore(
                 eventType = evento.javaClass.simpleName,
                 schemaVersion = 1,
                 occurredAt = LocalDateTime.now(),
-                payload = payloadJson
+                payload = payloadJson,
+                correlationId = metadadosEvento.correlationId,
+                causationId = metadadosEvento.causationId,
             )
             proximaVersao++
             persistido

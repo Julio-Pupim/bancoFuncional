@@ -5,6 +5,6 @@ import br.com.funcional.banco.infra.models.EventoPersistido
 import java.util.*
 
 interface EventStore {
-    fun append(id: UUID, eventos: List<ContaEvento>, versaoAtual: Long)
+    fun append(id: UUID, eventos: List<ContaEvento>, versaoAtual: Long, metadadosEvento: MetadadosEvento)
     fun load(aggregateId: UUID): List<EventoPersistido>
 }

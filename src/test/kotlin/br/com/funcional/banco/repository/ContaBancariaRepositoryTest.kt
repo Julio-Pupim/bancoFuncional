@@ -3,6 +3,7 @@ package br.com.funcional.banco.repository
 import br.com.funcional.banco.application.repository.ContaBancariaRepository
 import br.com.funcional.banco.domain.eventos.ContaAberta
 import br.com.funcional.banco.domain.eventos.DinheiroDepositado
+import br.com.funcional.banco.domain.ports.MetadadosEvento
 import br.com.funcional.banco.infra.mapper.EventoMapper
 import br.com.funcional.banco.infra.mock.InMemoryEventStore
 import org.junit.jupiter.api.Assertions.*
@@ -28,7 +29,7 @@ class ContaBancariaRepositoryTest {
         val evento2 = DinheiroDepositado(BigDecimal("50.00"), id)
 
         // Populamos o mock via porta
-        eventStore.append(id, listOf(evento1, evento2), 0L)
+        eventStore.append(id, listOf(evento1, evento2), 0L, MetadadosEvento(UUID.randomUUID(), id))
 
         // Act
         val contaReidratada = repository.buscarPorId(id)

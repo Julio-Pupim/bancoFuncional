@@ -3,6 +3,7 @@ package br.com.funcional.banco.application.repository
 import br.com.funcional.banco.domain.eventos.ContaEvento
 import br.com.funcional.banco.domain.models.ContaBancaria
 import br.com.funcional.banco.domain.ports.EventStore
+import br.com.funcional.banco.domain.ports.MetadadosEvento
 import br.com.funcional.banco.infra.mapper.EventoMapper
 import org.springframework.stereotype.Repository
 import java.util.*
@@ -22,7 +23,7 @@ class ContaBancariaRepository(private val eventStore: EventStore, val eventoMapp
         return ContaBancaria(eventosHistoricos)
     }
 
-    fun salvar(id: UUID, novosEventos: List<ContaEvento>, versaoAtual: Long) {
-        eventStore.append(id, novosEventos, versaoAtual)
+    fun salvar(id: UUID, novosEventos: List<ContaEvento>, versaoAtual: Long, metadadosEvento: MetadadosEvento) {
+        eventStore.append(id, novosEventos, versaoAtual, metadadosEvento)
     }
 }

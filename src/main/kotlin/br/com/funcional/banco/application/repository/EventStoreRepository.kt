@@ -3,6 +3,7 @@ package br.com.funcional.banco.application.repository
 import br.com.funcional.banco.domain.ConflitoVersaoException
 import br.com.funcional.banco.domain.eventos.ContaEvento
 import br.com.funcional.banco.domain.ports.EventStore
+import br.com.funcional.banco.domain.ports.MetadadosEvento
 import br.com.funcional.banco.infra.models.EventoPersistido
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.core.namedparam.SqlParameterSourceUtils
@@ -18,7 +19,7 @@ class EventStoreRepository(
     private val objectMapper: ObjectMapper
 ) : EventStore {
     @Transactional
-    override fun append(id: UUID, eventos: List<ContaEvento>, versaoAtual: Long) {
+    override fun append(id: UUID, eventos: List<ContaEvento>, versaoAtual: Long, metadadosEvento: MetadadosEvento) {
 
         if (eventos.isEmpty())
             return
@@ -35,7 +36,9 @@ class EventStoreRepository(
                 evento.javaClass.simpleName,
                 1,
                 LocalDateTime.now(),
-                objectMapper.writeValueAsString(evento)
+                objectMapper.writeValueAsString(evento),
+                metadadosEvento.correlationId,
+                metadadosEvento.causationId,
             )
             proximaVersao++
             linha
@@ -45,8 +48,8 @@ class EventStoreRepository(
 
     private fun salvarNoBanco(linhas: List<EventoPersistido>) {
         val sql = """
-            insert into event_store(event_id, aggregate_id, aggregate_type, aggregate_version, event_type, schema_version, occurred_at, payload)
-            values (:eventId, :aggregateId, :aggregateType, :aggregateVersion, :eventType, :schemaVersion, :occurredAt, cast(:payload as jsonb))
+            insert into event_store(event_id, aggregate_id, aggregate_type, aggregate_version, event_type, schema_version, occurred_at, payload, correlation_id, causation_id)
+            values (:eventId, :aggregateId, :aggregateType, :aggregateVersion, :eventType, :schemaVersion, :occurredAt, cast(:payload as jsonb), :correlationId, :causationId)
         """.trimIndent()
         val batchArgs = SqlParameterSourceUtils.createBatch(linhas)
         jdbcTemplate.batchUpdate(sql, batchArgs)
@@ -62,7 +65,9 @@ class EventStoreRepository(
                 event_type,
                 schema_version,
                 occurred_at,
-                payload::text as payload
+                payload::text as payload,
+                correlation_id,
+                causation_id
             from event_store
             where aggregate_id = :aggregate_id
             order by aggregate_version
@@ -81,6 +86,8 @@ class EventStoreRepository(
                 rs.getInt("schema_version"),
                 rs.getObject("occurred_at", LocalDateTime::class.java),
                 rs.getString("payload"),
+                rs.getObject("correlation_id", UUID::class.java),
+                rs.getObject("causation_id", UUID::class.java),
             )
         }
     }

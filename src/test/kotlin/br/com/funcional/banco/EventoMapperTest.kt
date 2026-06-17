@@ -25,7 +25,9 @@ class EventoMapperTest {
             eventType = "ContaAberta",
             schemaVersion = 1,
             occurredAt = LocalDateTime.now(),
-            payload = """{"id":"$aggregateId","saldoInicial":100.00}"""
+            payload = """{"id":"$aggregateId","saldoInicial":100.00}""",
+            correlationId = UUID.randomUUID(),
+            causationId = UUID.randomUUID(),
         )
 
         val evento = mapper.mapEventoPersistidoToContaEvento(eventoPersistido)
@@ -46,7 +48,9 @@ class EventoMapperTest {
             eventType = "DinheiroDepositado",
             schemaVersion = 1,
             occurredAt = LocalDateTime.now(),
-            payload = """{"idConta":"$aggregateId","valor":100.00}"""
+            payload = """{"idConta":"$aggregateId","valor":100.00}""",
+            correlationId = UUID.randomUUID(),
+            causationId = UUID.randomUUID(),
         )
         val evento = mapper.mapEventoPersistidoToContaEvento(eventoPersistido)
 
@@ -66,7 +70,9 @@ class EventoMapperTest {
             eventType = "DinheiroSacado",
             schemaVersion = 1,
             occurredAt = LocalDateTime.now(),
-            payload = """{"idConta":"$aggregateId","valor":100.00}"""
+            payload = """{"idConta":"$aggregateId","valor":100.00}""",
+            correlationId = UUID.randomUUID(),
+            causationId = UUID.randomUUID(),
         )
         val evento = mapper.mapEventoPersistidoToContaEvento(eventoPersistido)
         val dinheiroSacado = assertIs<DinheiroSacado>(evento)
@@ -86,7 +92,9 @@ class EventoMapperTest {
             eventType = "TransferenciaRealizada",
             schemaVersion = 1,
             occurredAt = LocalDateTime.now(),
-            payload = """{"valor":100.00, "idContaOrigem":"$aggregateId", "idContaDestino":"$outroId"}"""
+            payload = """{"valor":100.00, "idContaOrigem":"$aggregateId", "idContaDestino":"$outroId"}""",
+            correlationId = UUID.randomUUID(),
+            causationId = UUID.randomUUID(),
         )
         val evento = mapper.mapEventoPersistidoToContaEvento(eventoPersistido)
         val transferenciaRealizada = assertIs<TransferenciaRealizada>(evento)
@@ -106,7 +114,9 @@ class EventoMapperTest {
             eventType = "ContaBloqueada",
             schemaVersion = 1,
             occurredAt = LocalDateTime.now(),
-            payload = """{"idConta": "$aggregateId"}"""
+            payload = """{"idConta": "$aggregateId"}""",
+            correlationId = UUID.randomUUID(),
+            causationId = UUID.randomUUID(),
         )
         val evento = mapper.mapEventoPersistidoToContaEvento(eventoPersistido)
         val contaBloqueada = assertIs<ContaBloqueada>(evento)
@@ -124,7 +134,9 @@ class EventoMapperTest {
             eventType = "ContaEncerrada",
             schemaVersion = 1,
             occurredAt = LocalDateTime.now(),
-            payload = """{"idConta":"$aggregateId"}"""
+            payload = """{"idConta":"$aggregateId"}""",
+            correlationId = UUID.randomUUID(),
+            causationId = UUID.randomUUID(),
         )
         val evento = mapper.mapEventoPersistidoToContaEvento(eventoPersistido)
         val contaEncerrada = assertIs<ContaEncerrada>(evento)

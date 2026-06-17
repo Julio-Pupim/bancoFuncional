@@ -11,5 +11,7 @@ data class EventoPersistido(
     val eventType: String,
     val schemaVersion: Int,
     val occurredAt: LocalDateTime?,
-    val payload: String
+    val payload: String,
+    val correlationId: UUID,
+    val causationId: UUID
 )

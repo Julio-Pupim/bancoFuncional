@@ -7,8 +7,9 @@
 
 ## Fase 1 - Dominio puro com Event Sourcing
 
-**Goal:** Ter uma conta bancaria funcional em memoria, onde commands geram events, falhas de negocio sao valores, e o estado e sempre reconstruido por fold.
-**Target:** Concluir quando todos os fluxos principais tiverem testes unitarios sem depender de Spring, banco ou Kafka.
+**Goal:** Ter uma conta bancaria funcional em memoria, onde commands geram events, falhas de negocio sao valores, e o
+estado e sempre reconstruido por fold.
+**Status:** COMPLETE
 
 ### Features
 
@@ -32,31 +33,45 @@
 ## Fase 2 - Persistencia de eventos
 
 **Goal:** Persistir eventos em PostgreSQL e reconstruir aggregates a partir do event store.
+**Status:** In Progress
 
 ### Features
 
-**Event Store PostgreSQL** - IN PROGRESS
+**Event Store PostgreSQL** - DONE
 
-- Salvar eventos por aggregate. DONE baseline
-- Carregar stream de eventos de uma conta. DONE baseline
-- Controlar ordem e versao dos eventos. DONE baseline
-- Aplicar concorrencia otimista com `expectedVersion`. DONE baseline
-- Armazenar metadados minimos do evento. DONE baseline
-- Serializar payload dos eventos em JSONB. DONE baseline
-- Desserializar eventos persistidos para `ContaEvento`. DONE baseline
-- Garantir atomicidade de lote quando append falha. DONE baseline
+- Salvar eventos por aggregate. DONE
+- Carregar stream de eventos de uma conta. DONE
+- Controlar ordem e versao dos eventos. DONE
+- Aplicar concorrencia otimista com `expectedVersion`. DONE
+- Armazenar metadados minimos do evento. DONE
+- Serializar payload dos eventos em JSONB. DONE
+- Desserializar eventos persistidos para `ContaEvento`. DONE
+- Garantir atomicidade de lote quando append falha. DONE
 
-**Repositorio de Aggregate** - IN PROGRESS
+**Repositorio de Aggregate** - DONE
 
-- Reidratar `ContaBancaria` a partir do event store. IMPLEMENTED, needs tests
-- Persistir novos eventos gerados por commands. IMPLEMENTED baseline, needs tests
-- Rejeitar escrita quando a versao esperada nao bater com a versao persistida. COVERED in event store, needs aggregate-repository flow test
+- Reidratar `ContaBancaria` a partir do event store. DONE
+- Persistir novos eventos gerados por commands. DONE
+- Rejeitar escrita quando a versao esperada nao bater com a versao persistida. DONE
+- Testes de reidratacao e persistencia com `InMemoryEventStore`. DONE
 
-**Event Store em Memoria** - PLANNED
+**Event Store em Memoria** - DONE
 
-- Implementar a mesma porta do event store sem PostgreSQL.
-- Apoiar testes de aplicacao sem subir Spring.
-- Simular concorrencia otimista por versao.
+- Implementar a mesma porta do event store sem PostgreSQL. DONE
+- Apoiar testes de aplicacao sem subir Spring. DONE
+- Simular concorrencia otimista por versao. DONE
+
+**Metadados de rastreabilidade** - IN PROGRESS
+
+- Definir campos `correlationId` e `causationId` no `EventoPersistido`. PENDING
+- Persistir metadados opcionais no event store. PENDING
+- Disponibilizar metadados para publicacao futura no Kafka. PENDING
+
+**Edge Cases de persistencia** - IN PROGRESS
+
+- Rejeitar payload invalido com erro explicito. PENDING
+- Rejeitar `eventType` desconhecido com erro claro. PENDING
+- Tratar lacuna de versao no stream como stream inconsistente. PENDING
 
 ---
 
@@ -66,18 +81,25 @@
 
 ### Features
 
+**Migrations de Read Models** - PENDING (prerequisito para iniciar Fase 3)
+
+- Criar tabela `saldo_conta` no Liquibase. PENDING
+- Criar tabela `extrato_conta` no Liquibase. PENDING
+
 **Publicacao Kafka** - PLANNED
 
 - Publicar eventos no topico `conta-eventos`.
 - Serializar eventos com metadados minimos.
 - Preservar `eventId`, `correlationId` e `causationId` para rastreabilidade.
 
-**Projections CQRS** - PLANNED
+**Projections CQRS** - PARTIALLY IMPLEMENTED
 
-- Projetar tabela `saldo_conta`.
-- Projetar tabela `extrato`.
-- Preparar consumidores de auditoria e notificacoes.
-- Garantir idempotencia basica de consumers usando `eventId`.
+- Projetar tabela `saldo_conta`. LOGIC DONE, needs wiring and migration
+- Projetar tabela `extrato_conta`. LOGIC DONE, needs wiring and migration
+- Implementar `ConsultarExtratoHandler`. PENDING
+- Criar mecanismo de wiring entre evento salvo e projections. PENDING
+- Preparar consumidores de auditoria e notificacoes. PLANNED
+- Garantir idempotencia basica de consumers usando `eventId`. PLANNED
 
 ---
 
@@ -106,8 +128,9 @@
 
 ## Immediate Next Challenges
 
-- Criar testes unitarios para `ContaBancariaRepository` usando uma implementacao fake/in-memory da porta `EventStore`.
-- Validar o fluxo completo: salvar eventos, buscar aggregate reidratado, processar novo command e persistir apenas os novos eventos.
-- Decidir como a aplicacao calcula/carrega a `versaoAtual` ao salvar novos eventos depois da reidratacao.
-- Considerar mover ou nomear melhor os pacotes de infraestrutura (`br.com.funcional.infra`) para manter a separacao didatica clara.
-- Implementar `EventStore` em memoria para testes de aplicacao sem Spring.
+- Concluir ES2-07: definir e persistir `correlationId` e `causationId` no `EventoPersistido` e na tabela `event_store`.
+- Concluir ES2-08: cobrir edge cases de payload invalido, `eventType` desconhecido e lacuna de versao no stream.
+- Criar migrations Liquibase para `saldo_conta` e `extrato_conta` como prerequisito da Fase 3.
+- Implementar `ConsultarExtratoHandler`.
+- Definir mecanismo de wiring entre evento salvo e projections (ApplicationEvent do Spring ou dispatcher simples) antes
+  de introduzir Kafka.

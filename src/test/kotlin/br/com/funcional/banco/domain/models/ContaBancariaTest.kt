@@ -75,7 +75,7 @@ class ContaBancariaTest {
         val contaId = UUID.randomUUID()
         val aggregate = ContaBancaria(eventosHistoricos = listOf(ContaAberta(contaId, BigDecimal.ZERO)))
         val resultado = aggregate.processar(
-            Depositar(BigDecimal.TEN, contaId)
+            Depositar(valor = BigDecimal.TEN, idConta = contaId)
         )
         val commandAceito = assertIs<CommandAceito>(resultado)
         assertEquals(listOf(DinheiroDepositado(BigDecimal.TEN, contaId)), commandAceito.eventos)
@@ -88,8 +88,8 @@ class ContaBancariaTest {
         val aggregate = ContaBancaria()
         val resultado = aggregate.processar(
             Depositar(
-                BigDecimal.TEN,
-                contaId
+                valor = BigDecimal.TEN,
+                idConta = contaId
             )
         )
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
@@ -109,7 +109,7 @@ class ContaBancariaTest {
             )
         )
         val resultado = aggregate.processar(
-            Depositar(BigDecimal.TEN, contaId)
+            Depositar(valor = BigDecimal.TEN, idConta = contaId)
         )
         val commandAceito = assertIs<CommandAceito>(resultado)
         assertEquals(listOf(DinheiroDepositado(BigDecimal.TEN, contaId)), commandAceito.eventos)
@@ -131,7 +131,7 @@ class ContaBancariaTest {
                 DinheiroDepositado(BigDecimal.valueOf(100), contaId)
             )
         )
-        val resultado = aggregate.processar(Sacar(BigDecimal.TEN, contaId))
+        val resultado = aggregate.processar(Sacar(valor = BigDecimal.TEN, idConta = contaId))
         val commandAceito = assertIs<CommandAceito>(resultado)
         assertEquals(listOf(DinheiroSacado(BigDecimal.TEN, contaId)), commandAceito.eventos)
         val contaEstadoAtual = ContaBancaria.reconstruirEstado(
@@ -149,7 +149,7 @@ class ContaBancariaTest {
         val outraContaId = UUID.randomUUID()
         val aggregate = ContaBancaria(eventosHistoricos = listOf(ContaAberta(contaId, BigDecimal.ZERO)))
 
-        val resultado = aggregate.processar(Depositar(BigDecimal.TEN, outraContaId))
+        val resultado = aggregate.processar(Depositar(valor = BigDecimal.TEN, idConta = outraContaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaNaoAberta, commandRejeitado.erro)
@@ -166,7 +166,7 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(Sacar(BigDecimal.TEN, outraContaId))
+        val resultado = aggregate.processar(Sacar(valor = BigDecimal.TEN, idConta = outraContaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaNaoAberta, commandRejeitado.erro)
@@ -182,7 +182,8 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(Transferir(BigDecimal.TEN, contaId, contaId))
+        val resultado =
+            aggregate.processar(Transferir(valor = BigDecimal.TEN, idConta = contaId, idContaDestino = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaDestinoInvalida, commandRejeitado.erro)
@@ -198,7 +199,13 @@ class ContaBancariaTest {
         )
         val aggregate = ContaBancaria(eventosHistoricos = eventosHistoricos)
 
-        val resultado = aggregate.processar(Transferir(BigDecimal.TEN, contaOrigemId, contaDestinoId))
+        val resultado = aggregate.processar(
+            Transferir(
+                valor = BigDecimal.TEN,
+                idConta = contaOrigemId,
+                idContaDestino = contaDestinoId
+            )
+        )
 
         val commandAceito = assertIs<CommandAceito>(resultado)
         assertEquals(
@@ -217,7 +224,13 @@ class ContaBancariaTest {
         val contaDestinoId = UUID.randomUUID()
         val aggregate = ContaBancaria()
 
-        val resultado = aggregate.processar(Transferir(BigDecimal.TEN, contaOrigemId, contaDestinoId))
+        val resultado = aggregate.processar(
+            Transferir(
+                valor = BigDecimal.TEN,
+                idConta = contaOrigemId,
+                idContaDestino = contaDestinoId
+            )
+        )
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaNaoAberta, commandRejeitado.erro)
@@ -228,7 +241,7 @@ class ContaBancariaTest {
         val contaId = UUID.randomUUID()
         val aggregate = ContaBancaria()
 
-        val resultado = aggregate.processar(BloquearConta(contaId))
+        val resultado = aggregate.processar(BloquearConta(idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaNaoAberta, commandRejeitado.erro)
@@ -239,7 +252,7 @@ class ContaBancariaTest {
         val contaId = UUID.randomUUID()
         val aggregate = ContaBancaria()
 
-        val resultado = aggregate.processar(EncerrarConta(contaId))
+        val resultado = aggregate.processar(EncerrarConta(idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaNaoAberta, commandRejeitado.erro)
@@ -269,7 +282,7 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(Depositar(BigDecimal.TEN, contaId))
+        val resultado = aggregate.processar(Depositar(valor = BigDecimal.TEN, idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaBloqueada, commandRejeitado.erro)
@@ -285,7 +298,7 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(Sacar(BigDecimal.TEN, contaId))
+        val resultado = aggregate.processar(Sacar(valor = BigDecimal.TEN, idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaEncerrada, commandRejeitado.erro)
@@ -296,7 +309,7 @@ class ContaBancariaTest {
         val contaId = UUID.randomUUID()
         val aggregate = ContaBancaria(eventosHistoricos = listOf(ContaAberta(contaId, BigDecimal.ZERO)))
 
-        val resultado = aggregate.processar(Depositar(BigDecimal.ZERO, contaId))
+        val resultado = aggregate.processar(Depositar(valor = BigDecimal.ZERO, idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ValorInvalido, commandRejeitado.erro)
@@ -307,7 +320,7 @@ class ContaBancariaTest {
         val contaId = UUID.randomUUID()
         val aggregate = ContaBancaria(eventosHistoricos = listOf(ContaAberta(contaId, BigDecimal.ZERO)))
 
-        val resultado = aggregate.processar(Depositar(BigDecimal.valueOf(-1), contaId))
+        val resultado = aggregate.processar(Depositar(valor = BigDecimal.valueOf(-1), idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ValorInvalido, commandRejeitado.erro)
@@ -318,7 +331,7 @@ class ContaBancariaTest {
         val contaId = UUID.randomUUID()
         val aggregate = ContaBancaria(eventosHistoricos = listOf(ContaAberta(contaId, BigDecimal.TEN)))
 
-        val resultado = aggregate.processar(Sacar(BigDecimal.ZERO, contaId))
+        val resultado = aggregate.processar(Sacar(valor = BigDecimal.ZERO, idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ValorInvalido, commandRejeitado.erro)
@@ -329,7 +342,7 @@ class ContaBancariaTest {
         val contaId = UUID.randomUUID()
         val aggregate = ContaBancaria(eventosHistoricos = listOf(ContaAberta(contaId, BigDecimal.TEN)))
 
-        val resultado = aggregate.processar(Sacar(BigDecimal.valueOf(-1), contaId))
+        val resultado = aggregate.processar(Sacar(valor = BigDecimal.valueOf(-1), idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ValorInvalido, commandRejeitado.erro)
@@ -340,7 +353,7 @@ class ContaBancariaTest {
         val contaId = UUID.randomUUID()
         val aggregate = ContaBancaria(eventosHistoricos = listOf(ContaAberta(contaId, BigDecimal.TEN)))
 
-        val resultado = aggregate.processar(Sacar(BigDecimal.valueOf(20), contaId))
+        val resultado = aggregate.processar(Sacar(valor = BigDecimal.valueOf(20), idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(SaldoInsuficiente, commandRejeitado.erro)
@@ -356,7 +369,7 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(Sacar(BigDecimal.ONE, contaId))
+        val resultado = aggregate.processar(Sacar(valor = BigDecimal.ONE, idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaBloqueada, commandRejeitado.erro)
@@ -372,7 +385,7 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(Depositar(BigDecimal.TEN, contaId))
+        val resultado = aggregate.processar(Depositar(valor = BigDecimal.TEN, idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaEncerrada, commandRejeitado.erro)
@@ -384,7 +397,13 @@ class ContaBancariaTest {
         val contaDestinoId = UUID.randomUUID()
         val aggregate = ContaBancaria(eventosHistoricos = listOf(ContaAberta(contaOrigemId, BigDecimal.TEN)))
 
-        val resultado = aggregate.processar(Transferir(BigDecimal.ZERO, contaOrigemId, contaDestinoId))
+        val resultado = aggregate.processar(
+            Transferir(
+                valor = BigDecimal.ZERO,
+                idConta = contaOrigemId,
+                idContaDestino = contaDestinoId
+            )
+        )
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ValorInvalido, commandRejeitado.erro)
@@ -396,7 +415,13 @@ class ContaBancariaTest {
         val contaDestinoId = UUID.randomUUID()
         val aggregate = ContaBancaria(eventosHistoricos = listOf(ContaAberta(contaOrigemId, BigDecimal.TEN)))
 
-        val resultado = aggregate.processar(Transferir(BigDecimal.valueOf(-1), contaOrigemId, contaDestinoId))
+        val resultado = aggregate.processar(
+            Transferir(
+                valor = BigDecimal.valueOf(-1),
+                idConta = contaOrigemId,
+                idContaDestino = contaDestinoId
+            )
+        )
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ValorInvalido, commandRejeitado.erro)
@@ -408,7 +433,13 @@ class ContaBancariaTest {
         val contaDestinoId = UUID.randomUUID()
         val aggregate = ContaBancaria(eventosHistoricos = listOf(ContaAberta(contaOrigemId, BigDecimal.TEN)))
 
-        val resultado = aggregate.processar(Transferir(BigDecimal.valueOf(20), contaOrigemId, contaDestinoId))
+        val resultado = aggregate.processar(
+            Transferir(
+                valor = BigDecimal.valueOf(20),
+                idConta = contaOrigemId,
+                idContaDestino = contaDestinoId
+            )
+        )
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(SaldoInsuficiente, commandRejeitado.erro)
@@ -425,7 +456,13 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(Transferir(BigDecimal.ONE, contaOrigemId, contaDestinoId))
+        val resultado = aggregate.processar(
+            Transferir(
+                valor = BigDecimal.ONE,
+                idConta = contaOrigemId,
+                idContaDestino = contaDestinoId
+            )
+        )
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaBloqueada, commandRejeitado.erro)
@@ -442,7 +479,13 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(Transferir(BigDecimal.ONE, contaOrigemId, contaDestinoId))
+        val resultado = aggregate.processar(
+            Transferir(
+                valor = BigDecimal.ONE,
+                idConta = contaOrigemId,
+                idContaDestino = contaDestinoId
+            )
+        )
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaEncerrada, commandRejeitado.erro)
@@ -458,7 +501,7 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(BloquearConta(contaId))
+        val resultado = aggregate.processar(BloquearConta(idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaBloqueada, commandRejeitado.erro)
@@ -474,7 +517,7 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(BloquearConta(contaId))
+        val resultado = aggregate.processar(BloquearConta(idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaEncerrada, commandRejeitado.erro)
@@ -490,7 +533,7 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(EncerrarConta(contaId))
+        val resultado = aggregate.processar(EncerrarConta(idConta = contaId))
 
         val commandRejeitado = assertIs<CommandRejeitado>(resultado)
         assertEquals(ContaEncerrada, commandRejeitado.erro)
@@ -506,7 +549,7 @@ class ContaBancariaTest {
             )
         )
 
-        val resultado = aggregate.processar(EncerrarConta(contaId))
+        val resultado = aggregate.processar(EncerrarConta(idConta = contaId))
 
         val commandAceito = assertIs<CommandAceito>(resultado)
         assertEquals(listOf(ContaEncerradaEvento(contaId)), commandAceito.eventos)
