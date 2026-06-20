@@ -1,8 +1,10 @@
 package br.com.funcional.banco.infra.mapper
 
 import br.com.funcional.banco.domain.eventos.*
+import br.com.funcional.banco.domain.exception.PayloadException
 import br.com.funcional.banco.infra.models.EventoPersistido
 import org.springframework.stereotype.Component
+import tools.jackson.core.exc.StreamReadException
 import tools.jackson.databind.ObjectMapper
 import tools.jackson.module.kotlin.jacksonObjectMapper
 import tools.jackson.module.kotlin.readValue
@@ -11,39 +13,31 @@ import tools.jackson.module.kotlin.readValue
 class EventoMapper(
     val mapper: ObjectMapper = jacksonObjectMapper()
 ) {
-    private fun mapToContaAberta(eventoPersistido: EventoPersistido): ContaAberta {
-        return mapper.readValue<ContaAberta>(eventoPersistido.payload)
-    }
-
-    private fun mapToDinheiroDepositado(eventoPersistido: EventoPersistido): DinheiroDepositado {
-        return mapper.readValue<DinheiroDepositado>(eventoPersistido.payload)
-    }
-
-    private fun mapToDinheiroSacado(eventoPersistido: EventoPersistido): DinheiroSacado {
-        return mapper.readValue<DinheiroSacado>(eventoPersistido.payload)
-    }
-
-    private fun mapToTransferenciaRealizada(eventoPersistido: EventoPersistido): TransferenciaRealizada {
-        return mapper.readValue<TransferenciaRealizada>(eventoPersistido.payload)
-    }
-
-    private fun mapToContaBloqueada(eventoPersistido: EventoPersistido): ContaBloqueada {
-        return mapper.readValue<ContaBloqueada>(eventoPersistido.payload)
-    }
-
-    private fun mapToContaEncerrada(eventoPersistido: EventoPersistido): ContaEncerrada {
-        return mapper.readValue<ContaEncerrada>(eventoPersistido.payload)
+    private inline fun <reified T : ContaEvento> map(
+        eventoPersistido: EventoPersistido
+    ): T {
+        return try {
+            mapper.readValue(eventoPersistido.payload)
+        } catch (e: StreamReadException) {
+            throw PayloadException(
+                """Erro ao desserializar ${eventoPersistido.eventType}
+                    |payload: ${eventoPersistido.payload}
+                    |erro: ${e.message}
+                """.trimMargin(),
+                e
+            )
+        }
     }
 
     fun mapEventoPersistidoToContaEvento(eventoPersistido: EventoPersistido): ContaEvento {
         return when (eventoPersistido.eventType) {
-            "ContaAberta" -> mapToContaAberta(eventoPersistido)
-            "DinheiroDepositado" -> mapToDinheiroDepositado(eventoPersistido)
-            "DinheiroSacado" -> mapToDinheiroSacado(eventoPersistido)
-            "TransferenciaRealizada" -> mapToTransferenciaRealizada(eventoPersistido)
-            "ContaBloqueada" -> mapToContaBloqueada(eventoPersistido)
-            "ContaEncerrada" -> mapToContaEncerrada(eventoPersistido)
-            else -> throw IllegalArgumentException("Invalid event type")
+            "ContaAberta" -> map<ContaAberta>(eventoPersistido)
+            "DinheiroDepositado" -> map<DinheiroDepositado>(eventoPersistido)
+            "DinheiroSacado" -> map<DinheiroSacado>(eventoPersistido)
+            "TransferenciaRealizada" -> map<TransferenciaRealizada>(eventoPersistido)
+            "ContaBloqueada" -> map<ContaBloqueada>(eventoPersistido)
+            "ContaEncerrada" -> map<ContaEncerrada>(eventoPersistido)
+            else -> throw IllegalArgumentException("tipo de evento inválido")
         }
     }
 }

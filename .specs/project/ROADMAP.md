@@ -129,7 +129,7 @@ estado e sempre reconstruido por fold.
 ## Immediate Next Challenges
 
 - Concluir ES2-07: definir e persistir `correlationId` e `causationId` no `EventoPersistido` e na tabela `event_store`.
-- Concluir ES2-08: cobrir edge cases de payload invalido, `eventType` desconhecido e lacuna de versao no stream.
+- Concluir  : cobrir edge cases de payload invalido, `eventType` desconhecido e lacuna de versao no stream.
 - Criar migrations Liquibase para `saldo_conta` e `extrato_conta` como prerequisito da Fase 3.
 - Implementar `ConsultarExtratoHandler`.
 - Definir mecanismo de wiring entre evento salvo e projections (ApplicationEvent do Spring ou dispatcher simples) antes

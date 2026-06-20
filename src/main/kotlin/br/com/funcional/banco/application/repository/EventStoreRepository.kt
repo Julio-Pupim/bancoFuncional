@@ -1,7 +1,8 @@
 package br.com.funcional.banco.application.repository
 
-import br.com.funcional.banco.domain.ConflitoVersaoException
 import br.com.funcional.banco.domain.eventos.ContaEvento
+import br.com.funcional.banco.domain.exception.ConflitoVersaoException
+import br.com.funcional.banco.domain.exception.EventoInconsistenteException
 import br.com.funcional.banco.domain.ports.EventStore
 import br.com.funcional.banco.domain.ports.MetadadosEvento
 import br.com.funcional.banco.infra.models.EventoPersistido
@@ -73,7 +74,7 @@ class EventStoreRepository(
             order by aggregate_version
         """.trimIndent()
 
-        return jdbcTemplate.query(
+        val query = jdbcTemplate.query(
             sql,
             mapOf("aggregate_id" to aggregateId)
         ) { rs, _ ->
@@ -90,6 +91,9 @@ class EventStoreRepository(
                 rs.getObject("causation_id", UUID::class.java),
             )
         }
+        validarIntegridade(query)
+
+        return query
     }
 
     private fun getMaxAggregateVersion(aggregateId: UUID): Long {
@@ -98,6 +102,14 @@ class EventStoreRepository(
         """.trimIndent()
         val params = mapOf("aggregate_id" to aggregateId)
         return jdbcTemplate.queryForObject(sql, params, Long::class.java) ?: 0
+    }
+
+    private fun validarIntegridade(query: List<EventoPersistido>) {
+        val versao = query.maxOfOrNull { it.aggregateVersion } ?: return
+
+        if (query.size.toLong() != versao) {
+            throw EventoInconsistenteException("lacuna detectada: esperado ${query.size} eventos, versão máxima é $versao")
+        }
     }
 
 }

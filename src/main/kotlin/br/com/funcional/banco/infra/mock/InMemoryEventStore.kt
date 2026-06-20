@@ -1,7 +1,7 @@
 package br.com.funcional.banco.infra.mock
 
-import br.com.funcional.banco.domain.ConflitoVersaoException
 import br.com.funcional.banco.domain.eventos.ContaEvento
+import br.com.funcional.banco.domain.exception.ConflitoVersaoException
 import br.com.funcional.banco.domain.ports.EventStore
 import br.com.funcional.banco.domain.ports.MetadadosEvento
 import br.com.funcional.banco.infra.models.EventoPersistido

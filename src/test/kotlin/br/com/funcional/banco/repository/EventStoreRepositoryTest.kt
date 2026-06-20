@@ -6,6 +6,7 @@ import br.com.funcional.banco.domain.eventos.ContaAberta
 import br.com.funcional.banco.domain.eventos.ContaBloqueada
 import br.com.funcional.banco.domain.eventos.DinheiroDepositado
 import br.com.funcional.banco.domain.eventos.DinheiroSacado
+import br.com.funcional.banco.domain.exception.EventoInconsistenteException
 import br.com.funcional.banco.domain.ports.MetadadosEvento
 import br.com.funcional.banco.infra.models.EventoPersistido
 import org.junit.jupiter.api.Test
@@ -165,5 +166,34 @@ class EventStoreRepositoryTest : IntegrationTestBase() {
             listOf("ContaAberta", "DinheiroDepositado", "DinheiroSacado"),
             eventosPersistidos.map { it.eventType }
         )
+    }
+
+    @Test
+    fun `deve testar eventos inconsistentes em banco`() {
+
+        val aggregateId = UUID.randomUUID()
+        try {
+            jdbcTemplate.jdbcTemplate.execute(
+                """insert into event_store values(
+                'dbd8d86a-d488-4f6a-ba13-b0b13f1cccb4', '${aggregateId}', 'ContaBancaria', 1, 'ContaAberta', 1, now(),
+                 '{"id":"f6f77af2-313a-4e2d-9b9e-06d598ba8d20", "saldoInicial":100.00}', gen_random_uuid(), gen_random_uuid()),
+                 ('d0aa0da6-7ea3-4706-a0f3-206ea0b4e3b9','${aggregateId}', 'ContaBancaria', 3, 'DinheiroSacado',1,now(),
+                  '{"id":"0fcadb66-85be-4853-bfea-a0c49bc1c153", "valor":100.00}', gen_random_uuid(), gen_random_uuid())
+                 """.trimIndent()
+            )
+
+            val exception = assertThrows<EventoInconsistenteException> {
+                repository.load(
+                    aggregateId
+                )
+            }
+
+            assertEquals("lacuna detectada: esperado 2 eventos, versão máxima é 3", exception.message)
+        } finally {
+            jdbcTemplate.jdbcTemplate.execute(
+                "delete from event_store"
+            )
+
+        }
     }
 }

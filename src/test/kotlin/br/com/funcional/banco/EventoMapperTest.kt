@@ -1,9 +1,11 @@
 package br.com.funcional.banco
 
 import br.com.funcional.banco.domain.eventos.*
+import br.com.funcional.banco.domain.exception.PayloadException
 import br.com.funcional.banco.infra.mapper.EventoMapper
 import br.com.funcional.banco.infra.models.EventoPersistido
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.*
@@ -141,5 +143,47 @@ class EventoMapperTest {
         val evento = mapper.mapEventoPersistidoToContaEvento(eventoPersistido)
         val contaEncerrada = assertIs<ContaEncerrada>(evento)
         assertEquals(aggregateId, contaEncerrada.idConta)
+    }
+
+    @Test
+    fun `deve lancar exception para payload invalido`() {
+        val aggregateId = UUID.randomUUID()
+        val eventoPersistido = EventoPersistido(
+            eventId = UUID.randomUUID(),
+            aggregateId = aggregateId,
+            aggregateType = "DinheiroSacado",
+            aggregateVersion = 1,
+            eventType = "DinheiroSacado",
+            schemaVersion = 1,
+            occurredAt = LocalDateTime.now(),
+            payload = """{"idConta":"$aggregateId","valor:100.00}""",
+            correlationId = UUID.randomUUID(),
+            causationId = UUID.randomUUID(),
+        )
+        assertThrows<PayloadException>("""Erro ao desserializar DinheiroSacado payload: {"idConta":"$aggregateId","valor:100.00} erro: """) {
+            mapper.mapEventoPersistidoToContaEvento(eventoPersistido)
+        }
+    }
+
+    @Test
+    fun `deve lancar exception para evento inexistente`() {
+        val aggregateId = UUID.randomUUID()
+        val eventoPersistido = EventoPersistido(
+            eventId = UUID.randomUUID(),
+            aggregateId = aggregateId,
+            aggregateType = "ContaBancaria",
+            aggregateVersion = 1,
+            eventType = "NaoExistente",
+            schemaVersion = 1,
+            occurredAt = LocalDateTime.now(),
+            payload = """{"valor":100.00}""",
+            correlationId = UUID.randomUUID(),
+            causationId = UUID.randomUUID(),
+        )
+        assertThrows<IllegalArgumentException>("tipo de evento inválido") {
+            mapper.mapEventoPersistidoToContaEvento(
+                eventoPersistido
+            )
+        }
     }
 }
