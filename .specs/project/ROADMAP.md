@@ -1,7 +1,7 @@
 # Roadmap
 
-**Current Milestone:** Fase 2 - Persistencia de eventos
-**Status:** In Progress
+**Current Milestone:** Fase 3 - Event Driven e CQRS
+**Status:** Not Started
 
 ---
 
@@ -33,7 +33,7 @@ estado e sempre reconstruido por fold.
 ## Fase 2 - Persistencia de eventos
 
 **Goal:** Persistir eventos em PostgreSQL e reconstruir aggregates a partir do event store.
-**Status:** In Progress
+**Status:** COMPLETE
 
 ### Features
 
@@ -47,6 +47,9 @@ estado e sempre reconstruido por fold.
 - Serializar payload dos eventos em JSONB. DONE
 - Desserializar eventos persistidos para `ContaEvento`. DONE
 - Garantir atomicidade de lote quando append falha. DONE
+- Detectar lacuna de versao no stream e lancar `EventoInconsistenteException`. DONE
+- Rejeitar payload invalido com `PayloadInvalidoException` no mapper. DONE
+- Rejeitar `eventType` desconhecido com erro claro. DONE
 
 **Repositorio de Aggregate** - DONE
 
@@ -61,23 +64,17 @@ estado e sempre reconstruido por fold.
 - Apoiar testes de aplicacao sem subir Spring. DONE
 - Simular concorrencia otimista por versao. DONE
 
-**Metadados de rastreabilidade** - IN PROGRESS
+**Metadados de rastreabilidade** - DONE
 
-- Definir campos `correlationId` e `causationId` no `EventoPersistido`. PENDING
-- Persistir metadados opcionais no event store. PENDING
-- Disponibilizar metadados para publicacao futura no Kafka. PENDING
-
-**Edge Cases de persistencia** - IN PROGRESS
-
-- Rejeitar payload invalido com erro explicito. PENDING
-- Rejeitar `eventType` desconhecido com erro claro. PENDING
-- Tratar lacuna de versao no stream como stream inconsistente. PENDING
+- `causationId` implementado via `commandId` gerado no proprio command. DONE
+- `correlationId` adiado para Fase 3; sera fornecido pela borda HTTP ou Kafka consumer. DEFERRED
 
 ---
 
 ## Fase 3 - Event Driven e CQRS
 
 **Goal:** Publicar eventos no Kafka e criar read models separados do aggregate.
+**Status:** Not Started
 
 ### Features
 
@@ -86,19 +83,24 @@ estado e sempre reconstruido por fold.
 - Criar tabela `saldo_conta` no Liquibase. PENDING
 - Criar tabela `extrato_conta` no Liquibase. PENDING
 
+**Mecanismo de Wiring entre Event Store e Projections** - PENDING
+
+- Definir dispatcher de eventos apos persistencia (ApplicationEvent do Spring ou dispatcher simples). PENDING
+- Conectar `SaldoProjection` ao fluxo de escrita. PENDING
+- Conectar `ExtratoProjection` ao fluxo de escrita. PENDING
+- Implementar `ConsultarExtratoHandler`. PENDING
+
 **Publicacao Kafka** - PLANNED
 
 - Publicar eventos no topico `conta-eventos`.
 - Serializar eventos com metadados minimos.
-- Preservar `eventId`, `correlationId` e `causationId` para rastreabilidade.
+- Preservar `causationId` e futuramente `correlationId` para rastreabilidade.
 
 **Projections CQRS** - PARTIALLY IMPLEMENTED
 
 - Projetar tabela `saldo_conta`. LOGIC DONE, needs wiring and migration
 - Projetar tabela `extrato_conta`. LOGIC DONE, needs wiring and migration
 - Implementar `ConsultarExtratoHandler`. PENDING
-- Criar mecanismo de wiring entre evento salvo e projections. PENDING
-- Preparar consumidores de auditoria e notificacoes. PLANNED
 - Garantir idempotencia basica de consumers usando `eventId`. PLANNED
 
 ---
@@ -121,6 +123,7 @@ estado e sempre reconstruido por fold.
 ## Future Considerations
 
 - API HTTP para envio de commands depois que o dominio e persistencia estiverem estaveis.
+- `correlationId` vindo do header HTTP ou Kafka na Fase 3.
 - Outbox pattern para consistencia entre banco e Kafka.
 - Snapshot de aggregate.
 - Idempotencia avancada de consumers.
@@ -128,9 +131,7 @@ estado e sempre reconstruido por fold.
 
 ## Immediate Next Challenges
 
-- Concluir ES2-07: definir e persistir `correlationId` e `causationId` no `EventoPersistido` e na tabela `event_store`.
-- Concluir  : cobrir edge cases de payload invalido, `eventType` desconhecido e lacuna de versao no stream.
-- Criar migrations Liquibase para `saldo_conta` e `extrato_conta` como prerequisito da Fase 3.
+- Criar migrations Liquibase para `saldo_conta` e `extrato_conta` — prerequisito obrigatorio para Fase 3.
+- Definir e implementar mecanismo de wiring entre evento salvo e projections antes de introduzir Kafka.
 - Implementar `ConsultarExtratoHandler`.
-- Definir mecanismo de wiring entre evento salvo e projections (ApplicationEvent do Spring ou dispatcher simples) antes
-  de introduzir Kafka.
+- Introduzir `correlationId` vindo da borda HTTP quando o controller for criado.

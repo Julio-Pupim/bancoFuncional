@@ -16,55 +16,52 @@
 - O payload fica como `jsonb` no PostgreSQL, mas volta para Kotlin como `String` JSON via `payload::text`.
 - `append` deve ser transacional: se uma chamada tenta gravar multiplos eventos e algum falha, nenhum evento daquela
   chamada deve permanecer gravado.
+- `correlationId` sera introduzido na Fase 3, quando a borda do sistema (HTTP controller ou Kafka consumer) puder
+  fornecer o valor externo. Commands carregam `causationId` via `commandId` gerado no proprio command.
+- Validacao de integridade do stream (lacuna de versao) e responsabilidade do `EventStoreRepository.load()`, pois
+  qualquer aggregate que use o event store se beneficia da protecao sem duplicar logica.
+- Excecoes especificas de infraestrutura do event store ficam em `domain/exception` para nao vazar detalhes de
+  implementacao para as camadas superiores.
 
 ## Current Focus
 
 - Fase 1 concluida: dominio puro de `ContaBancaria` com commands, events, erros como valores e replay/fold.
-- Fase 2 em execucao: maioria das entregas concluidas; pendentes ES2-07 (metadados de rastreabilidade) e ES2-08 (edge
-  cases de persistencia).
-- `EventStoreRepository.append` e `load` existem sobre PostgreSQL/Testcontainers.
-- `append` grava eventos com versoes sequenciais, trata stream vazio como versao `0`, usa `@Transactional` e valida
-  versao esperada contra `max(aggregate_version)`.
-- `load` retorna `List<EventoPersistido>`, filtra por `aggregateId`, ordena por `aggregate_version` e le `payload` como
-  JSON textual.
-- `EventoMapper` converte todos os subtipos atuais de `ContaEvento` e possui 6 testes unitarios passando.
-- A porta `EventStore` existe e `EventStoreRepository` implementa essa abstracao.
-- `ContaBancariaRepository` existe, reidrata `ContaBancaria` a partir do event store e possui 2 testes unitarios
-  passando usando `InMemoryEventStore`.
-- `ContaBancariaService` possui 2 testes passando cobrindo o fluxo completo via `InMemoryEventStore`: abrir conta,
-  depositar, sacar e encerrar.
-- `InMemoryEventStore` esta implementado, implementa a porta `EventStore`, simula concorrencia otimista por versao e
-  apoia testes de aplicacao sem Spring.
-- `SaldoProjection` esta implementada com 4 testes unitarios passando usando `InMemorySaldoRepository`.
-- `ExtratoProjection` esta implementada com 1 teste unitario passando usando `InMemoryExtratoRepository`.
-- `mvnw test` passou com 54 testes: 33 de dominio, 2 de service, 2 de repositorio, 6 de mapper, 6 de event store
-  PostgreSQL, 4 de SaldoProjection e 1 de ExtratoProjection.
+- Fase 2 concluida: persistencia de eventos em PostgreSQL, reidratacao de aggregate, concorrencia otimista, serializacao
+  JSON, event store em memoria, metadados de rastreabilidade e edge cases de persistencia.
+- `EventStoreRepository.append` e `load` funcionam sobre PostgreSQL/Testcontainers com todas as garantias de
+  integridade.
+- `load` valida lacuna de versao via metodo privado `validarIntegridade`, lanca `EventoInconsistenteException` se
+  detectar inconsistencia.
+- `EventoMapper` captura excecoes do Jackson e relanca como `PayloadInvalidoException`, isolando o detalhe de
+  serializacao.
+- `causationId` implementado via `commandId` nos commands; `correlationId` adiado para quando a borda HTTP/Kafka
+  existir.
+- `SaldoProjection` e `ExtratoProjection` estao implementadas e testadas com mocks em memoria, mas nenhum mecanismo as
+  chama apos eventos serem salvos.
+- `ConsultarExtratoHandler` existe mas esta vazio.
+- As tabelas `saldo_conta` e `extrato_conta` nao existem no migration do Liquibase.
+- Fase 3 e o proximo foco: migrations de read models, mecanismo de wiring entre evento salvo e projections, e publicacao
+  no Kafka.
 
 ## Deferred
 
+- `correlationId` adiado para Fase 3; sera fornecido pela borda HTTP ou Kafka consumer.
 - Kafka, consumers e wiring de projections ficam para a Fase 3.
 - Transferencia distribuida entre duas contas fica para a Fase 4.
 - API HTTP fica fora do primeiro escopo.
-- `correlationId` e `causationId` (ES2-07) ainda pendentes; serao importantes para rastreabilidade na Fase 3.
 
 ## Concerns
 
 - O modelo de dinheiro ja usa `BigDecimal`; manter cuidado nos testes para evitar `BigDecimal(100.00)` e preferir
   strings como `BigDecimal("100.00")`.
-- O `pom.xml` ja inclui Spring, JDBC e Kafka, mas isso nao deve dirigir a Fase 1.
-- `correlationId` e `causationId` continuam adiados; serao importantes ao publicar eventos no Kafka na Fase 3.
-- O reducer/fold de eventos financeiros deve transformar o estado anterior. `DinheiroDepositado(10)` significa somar 10
-  ao saldo atual, nao definir saldo como 10.
-- `EventStoreRepository.append` ja lanca `ConflitoVersaoException` para conflito de versao.
-- O teste de atomicidade usa uma constraint temporaria no PostgreSQL para forcar falha no lote; isso e bom para
-  aprendizado, mas e um teste de infraestrutura um pouco mais acoplado ao banco.
 - As tabelas `saldo_conta` e `extrato_conta` nao existem no migration do Liquibase; `SaldoRepository` e
-  `ExtratoRepository` (implementacoes PostgreSQL) vao falhar em runtime ate que as migrations sejam criadas.
-- `ConsultarExtratoHandler` existe mas esta vazio; precisa ser implementado.
-- `SaldoProjection` e `ExtratoProjection` estao implementadas e testadas com mocks em memoria, mas nenhum mecanismo as
-  chama apos eventos serem salvos; o wiring entre o fluxo de escrita e as projections ainda nao existe.
-- ES2-08 (edge cases de persistencia) ainda esta parcialmente coberto; falta validar comportamento para payload
-  invalido, eventType desconhecido e lacuna de versao no stream.
+  `ExtratoRepository` vao falhar em runtime ate que as migrations sejam criadas. Esse e o prerequisito mais urgente para
+  iniciar a Fase 3.
+- `ConsultarExtratoHandler` existe mas esta vazio; precisa ser implementado antes de expor a query de extrato.
+- `SaldoProjection` e `ExtratoProjection` estao implementadas e testadas com mocks, mas nenhum mecanismo as chama apos
+  eventos serem salvos; o wiring entre escrita e projections precisa ser definido antes do Kafka.
+- O teste de atomicidade e o teste de lacuna de versao usam manipulacao direta do banco via `jdbcTemplate`; sao testes
+  de infraestrutura acoplados ao schema e devem ser revisados se o schema mudar.
 
 ## Preferences
 
